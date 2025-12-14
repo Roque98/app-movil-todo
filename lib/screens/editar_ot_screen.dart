@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../models/orden_trabajo.dart';
+import '../models/orden_trabajo.dart' as models;
 import '../models/usuario.dart';
 import '../services/auth_service.dart';
 import '../data/usuarios_dummy.dart';
 
 class EditarOTScreen extends StatefulWidget {
-  final OrdenTrabajo ordenTrabajo;
-  final Function(OrdenTrabajo) onGuardar;
+  final models.OrdenTrabajo ordenTrabajo;
+  final Function(models.OrdenTrabajo) onGuardar;
 
   const EditarOTScreen({
     super.key,
@@ -22,12 +22,12 @@ class _EditarOTScreenState extends State<EditarOTScreen> with SingleTickerProvid
   final _authService = AuthService();
   late TabController _tabController;
 
-  late EstadoOT _estadoSeleccionado;
-  late Prioridad _prioridadSeleccionada;
+  late models.EstadoOT _estadoSeleccionado;
+  late models.Prioridad _prioridadSeleccionada;
   late String _descripcion;
   String? _tecnicoSeleccionadoId;
   String? _descripcionTrabajo;
-  final List<Material> _materialesAgregados = [];
+  final List<models.Material> _materialesAgregados = [];
 
   @override
   void initState() {
@@ -268,7 +268,7 @@ class _EditarOTScreenState extends State<EditarOTScreen> with SingleTickerProvid
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: EstadoOT.values.map((estado) {
+      children: models.EstadoOT.values.map((estado) {
         final isSelected = _estadoSeleccionado == estado;
         final color = _getEstadoColor(estado);
 
@@ -313,7 +313,7 @@ class _EditarOTScreenState extends State<EditarOTScreen> with SingleTickerProvid
     return Wrap(
       spacing: 12,
       runSpacing: 12,
-      children: Prioridad.values.map((prioridad) {
+      children: models.Prioridad.values.map((prioridad) {
         final isSelected = _prioridadSeleccionada == prioridad;
         final color = _getPrioridadColor(prioridad);
 
@@ -357,7 +357,7 @@ class _EditarOTScreenState extends State<EditarOTScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildMaterialCard(Material material) {
+  Widget _buildMaterialCard(models.Material material) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -486,72 +486,72 @@ class _EditarOTScreenState extends State<EditarOTScreen> with SingleTickerProvid
     );
   }
 
-  Color _getEstadoColor(EstadoOT estado) {
+  Color _getEstadoColor(models.EstadoOT estado) {
     switch (estado) {
-      case EstadoOT.abierta: return Colors.orange[600]!;
-      case EstadoOT.asignada: return Colors.blue[600]!;
-      case EstadoOT.enProgreso: return Colors.purple[600]!;
-      case EstadoOT.pausada: return Colors.amber[700]!;
-      case EstadoOT.pendienteCierre: return Colors.teal[600]!;
-      case EstadoOT.cerrada: return Colors.green[600]!;
-      case EstadoOT.rechazada: return Colors.red[600]!;
+      case models.EstadoOT.abierta: return Colors.orange[600]!;
+      case models.EstadoOT.asignada: return Colors.blue[600]!;
+      case models.EstadoOT.enProgreso: return Colors.purple[600]!;
+      case models.EstadoOT.pausada: return Colors.amber[700]!;
+      case models.EstadoOT.pendienteCierre: return Colors.teal[600]!;
+      case models.EstadoOT.cerrada: return Colors.green[600]!;
+      case models.EstadoOT.rechazada: return Colors.red[600]!;
     }
   }
 
-  IconData _getEstadoIcon(EstadoOT estado) {
+  IconData _getEstadoIcon(models.EstadoOT estado) {
     switch (estado) {
-      case EstadoOT.abierta: return Icons.folder_open_rounded;
-      case EstadoOT.asignada: return Icons.assignment_ind_rounded;
-      case EstadoOT.enProgreso: return Icons.play_circle_rounded;
-      case EstadoOT.pausada: return Icons.pause_circle_rounded;
-      case EstadoOT.pendienteCierre: return Icons.pending_actions_rounded;
-      case EstadoOT.cerrada: return Icons.check_circle_rounded;
-      case EstadoOT.rechazada: return Icons.cancel_rounded;
+      case models.EstadoOT.abierta: return Icons.folder_open_rounded;
+      case models.EstadoOT.asignada: return Icons.assignment_ind_rounded;
+      case models.EstadoOT.enProgreso: return Icons.play_circle_rounded;
+      case models.EstadoOT.pausada: return Icons.pause_circle_rounded;
+      case models.EstadoOT.pendienteCierre: return Icons.pending_actions_rounded;
+      case models.EstadoOT.cerrada: return Icons.check_circle_rounded;
+      case models.EstadoOT.rechazada: return Icons.cancel_rounded;
     }
   }
 
-  String _getEstadoTexto(EstadoOT estado) {
+  String _getEstadoTexto(models.EstadoOT estado) {
     switch (estado) {
-      case EstadoOT.abierta: return 'Abierta';
-      case EstadoOT.asignada: return 'Asignada';
-      case EstadoOT.enProgreso: return 'En Progreso';
-      case EstadoOT.pausada: return 'Pausada';
-      case EstadoOT.pendienteCierre: return 'Pend. Cierre';
-      case EstadoOT.cerrada: return 'Cerrada';
-      case EstadoOT.rechazada: return 'Rechazada';
+      case models.EstadoOT.abierta: return 'Abierta';
+      case models.EstadoOT.asignada: return 'Asignada';
+      case models.EstadoOT.enProgreso: return 'En Progreso';
+      case models.EstadoOT.pausada: return 'Pausada';
+      case models.EstadoOT.pendienteCierre: return 'Pend. Cierre';
+      case models.EstadoOT.cerrada: return 'Cerrada';
+      case models.EstadoOT.rechazada: return 'Rechazada';
     }
   }
 
-  Color _getPrioridadColor(Prioridad prioridad) {
+  Color _getPrioridadColor(models.Prioridad prioridad) {
     switch (prioridad) {
-      case Prioridad.critica: return Colors.red[700]!;
-      case Prioridad.alta: return Colors.orange[700]!;
-      case Prioridad.media: return Colors.blue[600]!;
-      case Prioridad.baja: return Colors.green[600]!;
+      case models.Prioridad.critica: return Colors.red[700]!;
+      case models.Prioridad.alta: return Colors.orange[700]!;
+      case models.Prioridad.media: return Colors.blue[600]!;
+      case models.Prioridad.baja: return Colors.green[600]!;
     }
   }
 
-  IconData _getPrioridadIcon(Prioridad prioridad) {
+  IconData _getPrioridadIcon(models.Prioridad prioridad) {
     switch (prioridad) {
-      case Prioridad.critica: return Icons.warning_rounded;
-      case Prioridad.alta: return Icons.priority_high_rounded;
-      case Prioridad.media: return Icons.remove_rounded;
-      case Prioridad.baja: return Icons.arrow_downward_rounded;
+      case models.Prioridad.critica: return Icons.warning_rounded;
+      case models.Prioridad.alta: return Icons.priority_high_rounded;
+      case models.Prioridad.media: return Icons.remove_rounded;
+      case models.Prioridad.baja: return Icons.arrow_downward_rounded;
     }
   }
 
-  String _getPrioridadTexto(Prioridad prioridad) {
+  String _getPrioridadTexto(models.Prioridad prioridad) {
     switch (prioridad) {
-      case Prioridad.critica: return 'Crítica';
-      case Prioridad.alta: return 'Alta';
-      case Prioridad.media: return 'Media';
-      case Prioridad.baja: return 'Baja';
+      case models.Prioridad.critica: return 'Crítica';
+      case models.Prioridad.alta: return 'Alta';
+      case models.Prioridad.media: return 'Media';
+      case models.Prioridad.baja: return 'Baja';
     }
   }
 }
 
 class _AgregarMaterialDialog extends StatefulWidget {
-  final Function(Material) onAgregar;
+  final Function(models.Material) onAgregar;
 
   const _AgregarMaterialDialog({required this.onAgregar});
 
@@ -610,7 +610,7 @@ class _AgregarMaterialDialogState extends State<_AgregarMaterialDialog> {
             if (_nombreController.text.isNotEmpty &&
                 _cantidadController.text.isNotEmpty &&
                 _costoController.text.isNotEmpty) {
-              final material = Material(
+              final material = models.Material(
                 id: 'MAT-${DateTime.now().millisecondsSinceEpoch}',
                 nombre: _nombreController.text,
                 cantidad: int.parse(_cantidadController.text),
