@@ -3,10 +3,12 @@ import '../models/orden_trabajo.dart';
 import '../models/usuario.dart';
 import '../data/dummy_data.dart';
 import '../data/usuarios_dummy.dart';
+import '../data/notificaciones_dummy.dart';
 import '../services/auth_service.dart';
 import 'detalle_ot_screen.dart';
 import 'nueva_ot_screen.dart';
 import 'login_screen.dart';
+import 'notificaciones_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -131,6 +133,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ordenes.where((ot) => ot.estado == estado).length;
   }
 
+  int get _notificacionesNoLeidas {
+    final usuarioId = _authService.usuarioActual?.id;
+    if (usuarioId == null) return 0;
+
+    return notificacionesDummy
+        .where((n) => n.usuarioId == usuarioId && !n.leida)
+        .length;
+  }
+
   void _agregarNuevaOT(OrdenTrabajo nuevaOT) {
     setState(() {
       _ordenesTrabajo.insert(0, nuevaOT);
@@ -193,16 +204,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           Container(
             margin: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              children: [
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.notifications_outlined, color: Colors.orange),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificacionesScreen(),
+                      ),
+                    ).then((_) {
+                      // Refrescar el dashboard al regresar
+                      setState(() {});
+                    });
+                  },
                 ),
-                child: const Icon(Icons.notifications_outlined, color: Colors.orange),
-              ),
-              onPressed: () {},
+                if (_notificacionesNoLeidas > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red[600],
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Center(
+                        child: Text(
+                          _notificacionesNoLeidas > 9 ? '9+' : '$_notificacionesNoLeidas',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           Container(

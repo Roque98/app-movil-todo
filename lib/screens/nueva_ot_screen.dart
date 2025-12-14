@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/orden_trabajo.dart';
 
 class NuevaOTScreen extends StatefulWidget {
@@ -18,6 +20,9 @@ class _NuevaOTScreenState extends State<NuevaOTScreen> {
   TipoFalla _tipoFallaSeleccionado = TipoFalla.electrica;
   Prioridad _prioridadSeleccionada = Prioridad.media;
   final List<String> _archivosAdjuntos = [];
+  double? _latitud;
+  double? _longitud;
+  bool _obteniendoUbicacion = false;
 
   @override
   void dispose() {
@@ -148,17 +153,23 @@ class _NuevaOTScreenState extends State<NuevaOTScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 prefixIcon: const Icon(Icons.location_on),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.my_location),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Obteniendo ubicación GPS...'),
-                        duration: Duration(seconds: 2),
+                suffixIcon: _obteniendoUbicacion
+                    ? const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : IconButton(
+                        icon: Icon(
+                          _latitud != null ? Icons.my_location : Icons.location_searching,
+                          color: _latitud != null ? Colors.green : null,
+                        ),
+                        onPressed: _obtenerUbicacion,
+                        tooltip: 'Obtener ubicación GPS',
                       ),
-                    );
-                  },
-                ),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -167,6 +178,36 @@ class _NuevaOTScreenState extends State<NuevaOTScreen> {
                 return null;
               },
             ),
+
+            // Mapa de vista previa cuando se obtiene GPS
+            if (_latitud != null && _longitud != null) ...[
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  height: 200,
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(_latitud!, _longitud!),
+                      zoom: 15,
+                    ),
+                    markers: {
+                      Marker(
+                        markerId: const MarkerId('ubicacion_nueva_ot'),
+                        position: LatLng(_latitud!, _longitud!),
+                        infoWindow: const InfoWindow(
+                          title: 'Ubicación seleccionada',
+                        ),
+                      ),
+                    },
+                    zoomControlsEnabled: false,
+                    mapToolbarEnabled: false,
+                    myLocationButtonEnabled: false,
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 20),
 
             // Descripción del Problema
@@ -419,8 +460,8 @@ class _NuevaOTScreenState extends State<NuevaOTScreen> {
       solicitanteId: 'SOL-${DateTime.now().millisecondsSinceEpoch % 100}',
       solicitanteNombre: 'Usuario Demo',
       ubicacion: _ubicacionController.text,
-      latitud: 19.432608,
-      longitud: -99.133209,
+      latitud: _latitud,
+      longitud: _longitud,
       tipoFalla: _tipoFallaSeleccionado,
       prioridadSolicitada: _prioridadSeleccionada,
       descripcionProblema: _descripcionController.text,
@@ -506,6 +547,148 @@ class _NuevaOTScreenState extends State<NuevaOTScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _obtenerUbicacion() async {
+    setState(() {
+      _obteniendoUbicacion = true;
+    });
+
+    try {
+      // Verificar si el servicio de ubicación está habilitado
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('El servicio de ubicación está desactivado'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange[700],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Verificar permisos
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.white),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text('Permiso de ubicación denegado'),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.red[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.white),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Permisos de ubicación denegados permanentemente. Actívalos en la configuración.'),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Obtener ubicación
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      setState(() {
+        _latitud = position.latitude;
+        _longitud = position.longitude;
+
+        // Auto-llenar el campo de ubicación con las coordenadas
+        final coords = 'GPS: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
+        _ubicacionController.text = coords;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text('Ubicación GPS obtenida correctamente'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Error al obtener ubicación: $e'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _obteniendoUbicacion = false;
+        });
+      }
+    }
   }
 
   IconData _getTipoFallaIcon(TipoFalla tipo) {

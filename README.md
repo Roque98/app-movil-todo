@@ -23,6 +23,25 @@ Aplicación móvil desarrollada en Flutter para la gestión integral de órdenes
 - Ordenamiento configurable (fecha y prioridad)
 - Filtros combinables
 
+### 🗺️ Geolocalización y Mapas
+- Captura de coordenadas GPS al crear OTs
+- Vista previa del mapa con marcador
+- Mapa interactivo en detalle de OT
+- Integración con Google Maps
+
+### 📄 Exportación y Compartir
+- Generación de PDFs profesionales de OTs
+- Compartir OT vía apps nativas (WhatsApp, Email, etc.)
+- Formato de texto con toda la información relevante
+- Links a Google Maps en texto compartido
+
+### 🔔 Sistema de Notificaciones
+- Centro de notificaciones integrado
+- Alertas de asignación de OTs
+- Notificaciones de cambios de estado
+- Notificaciones de vencimiento de SLA
+- Contador de notificaciones no leídas
+
 ### 📊 Dashboard con KPIs
 - Contadores en tiempo real por estado
 - Visualización tipo cards con gradientes
@@ -58,19 +77,25 @@ Aplicación móvil desarrollada en Flutter para la gestión integral de órdenes
 ```
 lib/
 ├── data/
-│   ├── dummy_data.dart          # Datos de ejemplo de OTs
-│   └── usuarios_dummy.dart      # Usuarios de prueba
+│   ├── dummy_data.dart              # Datos de ejemplo de OTs
+│   ├── usuarios_dummy.dart          # Usuarios de prueba
+│   └── notificaciones_dummy.dart    # Notificaciones de ejemplo
 ├── models/
-│   ├── orden_trabajo.dart       # Modelo de OT con enums y métodos
-│   └── usuario.dart             # Modelo de usuario y permisos
+│   ├── orden_trabajo.dart           # Modelo de OT con enums y métodos
+│   ├── usuario.dart                 # Modelo de usuario y permisos
+│   ├── material.dart                # Modelo de materiales usados
+│   └── notificacion.dart            # Modelo de notificaciones
 ├── screens/
-│   ├── login_screen.dart        # Pantalla de autenticación
-│   ├── dashboard_screen.dart    # Dashboard principal con filtros
-│   ├── nueva_ot_screen.dart     # Formulario de creación de OT
-│   ├── detalle_ot_screen.dart   # Vista detallada y acciones
-│   └── editar_ot_screen.dart    # Formulario de edición con tabs
-└── services/
-    └── auth_service.dart        # Servicio de autenticación
+│   ├── login_screen.dart            # Pantalla de autenticación
+│   ├── dashboard_screen.dart        # Dashboard principal con filtros
+│   ├── nueva_ot_screen.dart         # Formulario de creación con GPS y mapa
+│   ├── detalle_ot_screen.dart       # Vista detallada, acciones y mapa
+│   ├── editar_ot_screen.dart        # Formulario de edición con tabs
+│   └── notificaciones_screen.dart   # Centro de notificaciones
+├── services/
+│   ├── auth_service.dart            # Servicio de autenticación
+│   └── pdf_service.dart             # Servicio de generación de PDFs
+└── main.dart                        # Punto de entrada de la aplicación
 ```
 
 ## 🎨 Capturas de Pantalla
@@ -98,7 +123,19 @@ cd app-movil-todo
 flutter pub get
 ```
 
-3. **Ejecutar la aplicación**
+3. **Configurar Google Maps API Key** (Obligatorio para funcionalidad de mapas)
+
+⚠️ **IMPORTANTE**: Para que el mapa funcione correctamente, debes configurar una API Key de Google Maps.
+
+Ver la guía completa: **[docs/CONFIGURACION_GOOGLE_MAPS.md](docs/CONFIGURACION_GOOGLE_MAPS.md)**
+
+Pasos rápidos:
+- Obtén una API Key en [Google Cloud Console](https://console.cloud.google.com/)
+- Edita `android/app/src/main/AndroidManifest.xml` (línea 43)
+- Edita `ios/Runner/AppDelegate.swift` (línea 12)
+- Reemplaza `TU_API_KEY_AQUI` con tu API Key
+
+4. **Ejecutar la aplicación**
 ```bash
 flutter run
 ```
@@ -115,27 +152,33 @@ flutter run
 ## 📋 Estado del Proyecto
 
 **Versión**: 1.0.0 (Sistema funcional con datos dummy)
+**Progreso**: 52% (11/20 tareas completadas)
 
-### ✅ Completado (30%)
+### ✅ Completado
 - ✅ Sistema de autenticación por roles
 - ✅ CRUD completo de órdenes de trabajo
 - ✅ Filtros y búsqueda avanzada
-- ✅ Flujos de trabajo completos
-- ✅ Carga de archivos simulada
-- ✅ Historial de cambios
+- ✅ Flujos de trabajo completos (iniciar, pausar, reanudar, cerrar)
+- ✅ Carga de archivos simulada con validaciones
+- ✅ Historial completo de cambios
+- ✅ Sistema de notificaciones integrado
+- ✅ Reasignación de técnicos con validaciones de flujo
+- ✅ **Geolocalización con GPS y Google Maps**
+- ✅ **Exportación de OTs a PDF profesional**
+- ✅ **Compartir OTs vía apps nativas**
 
-### 🚧 Pendiente
+### 🚧 En Progreso / Pendiente
 - ⏳ Integración con backend (API REST)
 - ⏳ Carga real de archivos (image_picker, file_picker)
-- ⏳ Notificaciones push
-- ⏳ Geolocalización con Google Maps
-- ⏳ Exportar a PDF
+- ⏳ Notificaciones push (Firebase Cloud Messaging)
 - ⏳ Persistencia local (SQLite/Hive)
-- ⏳ Tests automatizados
-- ⏳ Dashboard de estadísticas
+- ⏳ Tests automatizados (unit, widget, integration)
+- ⏳ Dashboard avanzado con estadísticas y gráficas
 - ⏳ Modo offline con sincronización
+- ⏳ Historial de pausas detallado
+- ⏳ Sistema de materiales mejorado
 
-Ver [TAREAS_PENDIENTES.md](TAREAS_PENDIENTES.md) para más detalles.
+Ver [TAREAS_PENDIENTES.md](TAREAS_PENDIENTES.md) para detalles completos.
 
 ## 🌿 GitFlow
 

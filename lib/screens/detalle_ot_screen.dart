@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/orden_trabajo.dart';
 import '../models/usuario.dart';
 import '../services/auth_service.dart';
+import '../services/pdf_service.dart';
+import '../data/usuarios_dummy.dart';
 import 'editar_ot_screen.dart';
 
 class DetalleOTScreen extends StatelessWidget {
@@ -112,7 +116,7 @@ class DetalleOTScreen extends StatelessWidget {
           children: [
             _buildHeaderSection(),
             const Divider(height: 1),
-            _buildInformacionCreacion(),
+            _buildInformacionCreacion(context),
             const Divider(height: 1),
             if (ordenTrabajo.tecnicoAsignadoNombre != null)
               _buildInformacionGestion(),
@@ -262,7 +266,7 @@ class DetalleOTScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInformacionCreacion() {
+  Widget _buildInformacionCreacion(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -281,9 +285,12 @@ class DetalleOTScreen extends StatelessWidget {
           _buildInfoRow(Icons.person, 'Solicitante',
               '${ordenTrabajo.solicitanteNombre} (${ordenTrabajo.solicitanteId})'),
           _buildInfoRow(Icons.location_on, 'Ubicación', ordenTrabajo.ubicacion),
-          if (ordenTrabajo.latitud != null && ordenTrabajo.longitud != null)
+          if (ordenTrabajo.latitud != null && ordenTrabajo.longitud != null) ...[
             _buildInfoRow(Icons.gps_fixed, 'Coordenadas GPS',
-                '${ordenTrabajo.latitud}, ${ordenTrabajo.longitud}'),
+                '${ordenTrabajo.latitud!.toStringAsFixed(6)}, ${ordenTrabajo.longitud!.toStringAsFixed(6)}'),
+            const SizedBox(height: 16),
+            _buildMapa(context),
+          ],
           if (ordenTrabajo.archivosAdjuntos.isNotEmpty) ...[
             const SizedBox(height: 12),
             const Text(
@@ -598,6 +605,78 @@ class DetalleOTScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildMapa(BuildContext context) {
+    if (ordenTrabajo.latitud == null || ordenTrabajo.longitud == null) {
+      return const SizedBox.shrink();
+    }
+
+    final LatLng posicion = LatLng(ordenTrabajo.latitud!, ordenTrabajo.longitud!);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Mapa de Ubicación',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                // Abrir en Google Maps (simulado por ahora)
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.white),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text('Para usar esta función, instala el paquete url_launcher'),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.blue[700],
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: const Text('Abrir en Maps', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: SizedBox(
+            height: 200,
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: posicion,
+                zoom: 15,
+              ),
+              markers: {
+                Marker(
+                  markerId: const MarkerId('ubicacion_ot'),
+                  position: posicion,
+                  infoWindow: InfoWindow(
+                    title: ordenTrabajo.idOT,
+                    snippet: ordenTrabajo.ubicacion,
+                  ),
+                ),
+              },
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+              myLocationButtonEnabled: false,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -753,7 +832,7 @@ class DetalleOTScreen extends StatelessWidget {
       actionButtons = [
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () => _compartirOT(context),
             icon: const Icon(Icons.share),
             label: const Text('Compartir'),
             style: OutlinedButton.styleFrom(
@@ -764,7 +843,7 @@ class DetalleOTScreen extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () => _exportarPDF(context),
             icon: const Icon(Icons.download),
             label: const Text('Exportar PDF'),
             style: ElevatedButton.styleFrom(
@@ -795,6 +874,28 @@ class DetalleOTScreen extends StatelessWidget {
   }
 
   void _iniciarTrabajo(BuildContext context) {
+    // Validación: Solo se puede iniciar si está asignada
+    if (ordenTrabajo.estado != EstadoOT.asignada) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text('Solo se puede iniciar una OT en estado "Asignada"'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     final otActualizada = ordenTrabajo.copyWith(
       estado: EstadoOT.enProgreso,
       fechaHoraInicioReal: DateTime.now(),
@@ -823,6 +924,28 @@ class DetalleOTScreen extends StatelessWidget {
   }
 
   void _pausarTrabajo(BuildContext context) {
+    // Validación: Solo se puede pausar si está en progreso
+    if (ordenTrabajo.estado != EstadoOT.enProgreso) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text('Solo se puede pausar una OT en estado "En Progreso"'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     final otActualizada = ordenTrabajo.copyWith(
       estado: EstadoOT.pausada,
     );
@@ -850,6 +973,28 @@ class DetalleOTScreen extends StatelessWidget {
   }
 
   void _reanudarTrabajo(BuildContext context) {
+    // Validación: Solo se puede reanudar si está pausado
+    if (ordenTrabajo.estado != EstadoOT.pausada) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text('Solo se puede reanudar una OT en estado "Pausado"'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     final otActualizada = ordenTrabajo.copyWith(
       estado: EstadoOT.enProgreso,
     );
@@ -877,6 +1022,42 @@ class DetalleOTScreen extends StatelessWidget {
   }
 
   void _cerrarTrabajo(BuildContext context) {
+    // Validación: Solo se puede cerrar si está en progreso o pausado
+    if (ordenTrabajo.estado != EstadoOT.enProgreso &&
+        ordenTrabajo.estado != EstadoOT.pausada) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'No se puede finalizar',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'El trabajo debe estar en estado "En Progreso" o "Pausado"',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     _mostrarDialogoCierre(context);
   }
 
@@ -1284,18 +1465,225 @@ class DetalleOTScreen extends StatelessWidget {
   }
 
   void _mostrarDialogoReasignar(BuildContext context) {
+    final tecnicos = usuariosDummy.where((u) => u.rol == Rol.tecnico).toList();
+    String? tecnicoSeleccionadoId = ordenTrabajo.tecnicoAsignadoId;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Reasignar Técnico'),
-        content: const Text('Funcionalidad de reasignación próximamente.\n\nPermitirá seleccionar un nuevo técnico de la lista de técnicos disponibles.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.swap_horiz_rounded, color: Colors.blue[700]),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Reasignar Técnico', style: TextStyle(fontSize: 18)),
+                    Text(
+                      'Selecciona un nuevo técnico',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (ordenTrabajo.tecnicoAsignadoId != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 20, color: Colors.orange[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Técnico actual: ${ordenTrabajo.tecnicoAsignadoNombre}',
+                            style: TextStyle(fontSize: 13, color: Colors.orange[900]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Técnicos disponibles:',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: tecnicos.length,
+                    itemBuilder: (context, index) {
+                      final tecnico = tecnicos[index];
+                      final isSelected = tecnicoSeleccionadoId == tecnico.id;
+                      final isCurrent = tecnico.id == ordenTrabajo.tecnicoAsignadoId;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.blue[50] : Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected ? Colors.blue[300]! : Colors.grey[300]!,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          leading: CircleAvatar(
+                            backgroundColor: isSelected ? Colors.blue[700] : Colors.grey[300],
+                            child: Icon(
+                              Icons.person,
+                              color: isSelected ? Colors.white : Colors.grey[600],
+                              size: 20,
+                            ),
+                          ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  tecnico.nombre,
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              if (isCurrent)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange[100],
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Actual',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange[900],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            tecnico.email,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          trailing: isSelected
+                              ? Icon(Icons.check_circle, color: Colors.blue[700], size: 24)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              tecnicoSeleccionadoId = tecnico.id;
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton.icon(
+              onPressed: tecnicoSeleccionadoId == null ||
+                         tecnicoSeleccionadoId == ordenTrabajo.tecnicoAsignadoId
+                  ? null
+                  : () {
+                      final tecnicoSeleccionado = tecnicos.firstWhere(
+                        (t) => t.id == tecnicoSeleccionadoId,
+                      );
+                      _realizarReasignacion(context, tecnicoSeleccionado);
+                    },
+              icon: const Icon(Icons.swap_horiz, size: 18),
+              label: const Text('Reasignar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _realizarReasignacion(BuildContext context, Usuario nuevoTecnico) {
+    final tecnicoAnterior = ordenTrabajo.tecnicoAsignadoNombre ?? 'Sin asignar';
+
+    // Actualizar la OT con el nuevo técnico
+    final otActualizada = ordenTrabajo.copyWith(
+      tecnicoAsignadoId: nuevoTecnico.id,
+      tecnicoAsignadoNombre: nuevoTecnico.nombre,
+      fechaAsignacion: DateTime.now(),
+      estado: EstadoOT.asignada,
+    );
+
+    // Notificar cambios
+    if (onOTActualizada != null) {
+      onOTActualizada!(otActualizada);
+    }
+
+    Navigator.pop(context);
+
+    // Mostrar mensaje de éxito
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Técnico reasignado exitosamente',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'De "$tecnicoAnterior" a "${nuevoTecnico.nombre}"',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.green[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -1421,47 +1809,300 @@ class DetalleOTScreen extends StatelessWidget {
     );
   }
 
-  void _compartirOT(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.info, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text('Compartir OT ${ordenTrabajo.idOT}\n\nFuncionalidad próximamente con integración de share_plus'),
+  Future<void> _compartirOT(BuildContext context) async {
+    try {
+      // Generar el texto para compartir
+      final texto = _generarTextoCompartir();
+
+      // Compartir usando share_plus
+      await Share.share(
+        texto,
+        subject: 'Orden de Trabajo ${ordenTrabajo.idOT}',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Error al compartir: $e'),
+                ),
+              ],
             ),
-          ],
-        ),
-        backgroundColor: Colors.blue[700],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
   }
 
-  void _exportarPDF(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.picture_as_pdf, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text('Exportar OT ${ordenTrabajo.idOT} a PDF\n\nFuncionalidad próximamente con integración de paquete pdf'),
+  String _generarTextoCompartir() {
+    final buffer = StringBuffer();
+
+    // Encabezado
+    buffer.writeln('📋 ORDEN DE TRABAJO');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('ID: ${ordenTrabajo.idOT}');
+    buffer.writeln('Estado: ${_getEstadoTexto(ordenTrabajo.estado)}');
+    buffer.writeln();
+
+    // Información básica
+    buffer.writeln('📅 Información de Creación');
+    buffer.writeln('Fecha: ${_formatFechaCompleta(ordenTrabajo.fechaSolicitud)}');
+    buffer.writeln('Solicitante: ${ordenTrabajo.solicitanteNombre}');
+    buffer.writeln('Ubicación: ${ordenTrabajo.ubicacion}');
+    if (ordenTrabajo.latitud != null && ordenTrabajo.longitud != null) {
+      buffer.writeln('GPS: ${ordenTrabajo.latitud!.toStringAsFixed(6)}, ${ordenTrabajo.longitud!.toStringAsFixed(6)}');
+      buffer.writeln('Maps: https://www.google.com/maps?q=${ordenTrabajo.latitud},${ordenTrabajo.longitud}');
+    }
+    buffer.writeln('Tipo de Falla: ${_getTipoFallaTexto(ordenTrabajo.tipoFalla)}');
+    buffer.writeln('Prioridad: ${_getPrioridadTexto(ordenTrabajo.prioridadSolicitada)}');
+    buffer.writeln();
+
+    // Descripción del problema
+    buffer.writeln('📝 Descripción del Problema');
+    buffer.writeln(ordenTrabajo.descripcionProblema);
+    buffer.writeln();
+
+    // Información de gestión
+    if (ordenTrabajo.tecnicoAsignadoNombre != null) {
+      buffer.writeln('👷 Información de Gestión');
+      buffer.writeln('Técnico: ${ordenTrabajo.tecnicoAsignadoNombre}');
+      if (ordenTrabajo.prioridadAsignada != null) {
+        buffer.writeln('Prioridad Asignada: ${_getPrioridadTexto(ordenTrabajo.prioridadAsignada!)}');
+      }
+      buffer.writeln();
+    }
+
+    // Trabajo realizado
+    if (ordenTrabajo.descripcionTrabajoRealizado != null) {
+      buffer.writeln('🔧 Trabajo Realizado');
+      buffer.writeln(ordenTrabajo.descripcionTrabajoRealizado);
+      if (ordenTrabajo.tiempoTotalTrabajado != null) {
+        final horas = ordenTrabajo.tiempoTotalTrabajado!.inHours;
+        final minutos = ordenTrabajo.tiempoTotalTrabajado!.inMinutes.remainder(60);
+        buffer.writeln('Tiempo: $horas h $minutos min');
+      }
+      buffer.writeln();
+    }
+
+    // Materiales
+    if (ordenTrabajo.materialesUsados.isNotEmpty) {
+      buffer.writeln('🛠️ Materiales Usados');
+      for (final material in ordenTrabajo.materialesUsados) {
+        buffer.writeln('- ${material.nombre}: ${material.cantidad} x \$${material.costoUnitario.toStringAsFixed(2)} = \$${material.costoTotal.toStringAsFixed(2)}');
+      }
+      final costoTotal = ordenTrabajo.materialesUsados.fold(0.0, (sum, m) => sum + m.costoTotal);
+      buffer.writeln('Total: \$${costoTotal.toStringAsFixed(2)}');
+      buffer.writeln();
+    }
+
+    // Estado final
+    if (ordenTrabajo.estatusAceptacion != null) {
+      buffer.writeln('✓ Estado Final');
+      buffer.writeln(ordenTrabajo.estatusAceptacion! ? 'ACEPTADO' : 'RECHAZADO');
+      if (ordenTrabajo.comentariosSolicitante != null) {
+        buffer.writeln('Comentarios: ${ordenTrabajo.comentariosSolicitante}');
+      }
+    }
+
+    buffer.writeln();
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('Generado automáticamente desde App de Mantenimiento');
+
+    return buffer.toString();
+  }
+
+  String _getTipoFallaTexto(TipoFalla tipo) {
+    switch (tipo) {
+      case TipoFalla.electrica:
+        return 'Eléctrica';
+      case TipoFalla.plomeria:
+        return 'Plomería';
+      case TipoFalla.climatizacion:
+        return 'Climatización';
+      case TipoFalla.estructural:
+        return 'Estructural';
+      case TipoFalla.limpieza:
+        return 'Limpieza';
+      case TipoFalla.seguridad:
+        return 'Seguridad';
+      case TipoFalla.tecnologia:
+        return 'Tecnología';
+      case TipoFalla.otro:
+        return 'Otro';
+    }
+  }
+
+  String _getPrioridadTexto(Prioridad prioridad) {
+    switch (prioridad) {
+      case Prioridad.critica:
+        return 'Crítica';
+      case Prioridad.alta:
+        return 'Alta';
+      case Prioridad.media:
+        return 'Media';
+      case Prioridad.baja:
+        return 'Baja';
+    }
+  }
+
+  String _getEstadoTexto(EstadoOT estado) {
+    switch (estado) {
+      case EstadoOT.abierta:
+        return 'ABIERTA';
+      case EstadoOT.asignada:
+        return 'ASIGNADA';
+      case EstadoOT.enProgreso:
+        return 'EN PROGRESO';
+      case EstadoOT.pausada:
+        return 'PAUSADA';
+      case EstadoOT.pendienteCierre:
+        return 'PENDIENTE DE CIERRE';
+      case EstadoOT.cerrada:
+        return 'CERRADA';
+      case EstadoOT.rechazada:
+        return 'RECHAZADA';
+    }
+  }
+
+  Future<void> _exportarPDF(BuildContext context) async {
+    try {
+      // Mostrar indicador de carga
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Generando PDF...'),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
-        backgroundColor: Colors.red[700],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+      );
+
+      // Generar PDF
+      await PdfService.generarPDF(ordenTrabajo);
+
+      // Cerrar diálogo de carga
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      // Cerrar diálogo de carga si está abierto
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text('Error al generar PDF: $e'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    }
   }
 
   void _confirmarEliminar(BuildContext context) {
+    // Validación: No se puede eliminar si está en ciertos estados
+    if (ordenTrabajo.estado == EstadoOT.enProgreso ||
+        ordenTrabajo.estado == EstadoOT.pausada ||
+        ordenTrabajo.estado == EstadoOT.pendienteCierre ||
+        ordenTrabajo.estado == EstadoOT.cerrada) {
+      String estadoTexto;
+      switch (ordenTrabajo.estado) {
+        case EstadoOT.enProgreso:
+          estadoTexto = 'En Progreso';
+          break;
+        case EstadoOT.pausada:
+          estadoTexto = 'Pausado';
+          break;
+        case EstadoOT.pendienteCierre:
+          estadoTexto = 'Pendiente de Cierre';
+          break;
+        case EstadoOT.cerrada:
+          estadoTexto = 'Cerrada';
+          break;
+        default:
+          estadoTexto = ordenTrabajo.estado.toString();
+      }
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.block, color: Colors.red),
+              SizedBox(width: 12),
+              Text('No se puede eliminar'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'No es posible eliminar la OT ${ordenTrabajo.idOT} porque está en estado "$estadoTexto".',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 20, color: Colors.orange[700]),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Solo se pueden eliminar OTs en estado "Abierta", "Asignada" o "Rechazada"',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Entendido'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
