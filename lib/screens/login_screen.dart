@@ -54,6 +54,24 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _loginQuick(String email, String password) async {
+    setState(() => _isLoading = true);
+
+    final success = await _authService.login(email, password);
+
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const DashboardScreen(),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -225,36 +243,69 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 30),
 
-                  // Usuarios de prueba
+                  // Acceso rápido por rol
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue[200]!),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
+                            Icon(Icons.flash_on, size: 20, color: Colors.orange[700]),
                             const SizedBox(width: 8),
                             Text(
-                              'Usuarios de prueba',
+                              'Acceso rápido (Demo)',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.blue[900],
-                                fontSize: 14,
+                                color: Colors.grey[800],
+                                fontSize: 15,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        _buildUserInfo('Administrador', 'admin@mantenimiento.com', 'admin123'),
-                        _buildUserInfo('Supervisor', 'supervisor@mantenimiento.com', 'super123'),
-                        _buildUserInfo('Técnico', 'carlos.rodriguez@mantenimiento.com', 'tec123'),
-                        _buildUserInfo('Solicitante', 'maria.garcia@empresa.com', 'sol123'),
+                        const SizedBox(height: 16),
+                        _buildQuickAccessButton(
+                          'Administrador',
+                          Icons.admin_panel_settings,
+                          Colors.purple,
+                          'admin@mantenimiento.com',
+                          'admin123',
+                        ),
+                        const SizedBox(height: 10),
+                        _buildQuickAccessButton(
+                          'Supervisor',
+                          Icons.manage_accounts,
+                          Colors.blue,
+                          'supervisor@mantenimiento.com',
+                          'super123',
+                        ),
+                        const SizedBox(height: 10),
+                        _buildQuickAccessButton(
+                          'Técnico',
+                          Icons.engineering,
+                          Colors.green,
+                          'carlos.rodriguez@mantenimiento.com',
+                          'tec123',
+                        ),
+                        const SizedBox(height: 10),
+                        _buildQuickAccessButton(
+                          'Solicitante',
+                          Icons.person,
+                          Colors.orange,
+                          'maria.garcia@empresa.com',
+                          'sol123',
+                        ),
                       ],
                     ),
                   ),
@@ -267,30 +318,77 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildUserInfo(String rol, String email, String password) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$rol:',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-              color: Colors.blue[900],
-            ),
+  Widget _buildQuickAccessButton(
+    String rol,
+    IconData icon,
+    Color color,
+    String email,
+    String password,
+  ) {
+    return InkWell(
+      onTap: _isLoading ? null : () => _loginQuick(email, password),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.1),
+              color.withValues(alpha: 0.05),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            '$email / $password',
-            style: TextStyle(
-              fontSize: 11,
-              color: Colors.grey[700],
-              fontFamily: 'monospace',
-            ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withValues(alpha: 0.3),
+            width: 1.5,
           ),
-        ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Entrar como $rol',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    email.split('@')[0],
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: color.withValues(alpha: 0.5),
+            ),
+          ],
+        ),
       ),
     );
   }
