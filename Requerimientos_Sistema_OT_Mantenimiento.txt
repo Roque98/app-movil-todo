@@ -1,0 +1,118 @@
+Requerimientos del Sistema de Gestión de Órdenes de Mantenimiento
+1. Arquitectura y Componentes del Sistema
+El sistema requiere una arquitectura de tres capas que permita escalabilidad, mantenibilidad y despliegue multiplataforma.
+2. Modelo de Datos de la Orden de Trabajo
+2.1. Campos Principales
+El modelo de datos debe incluir los siguientes grupos de información:
+Información de Creación: ID_OT, Fecha_Solicitud, Solicitante_ID, Ubicacion, Coordenadas_GPS, Tipo_Falla, Prioridad_Solicitada, Descripcion_Problema, Archivos_Adjuntos
+Información de Gestión: Tecnico_Asignado_ID, Fecha_Asignacion, Prioridad_Asignada, SLA_Tiempo_Respuesta, Fecha_Compromiso, Comentarios_Gestion
+Información de Seguimiento: Estado_OT, Fecha_Hora_Inicio_Real, Fecha_Hora_Cierre_Tecnico, Descripcion_Trabajo_Realizado, Materiales_Usados, Fotos_Cierre, Tiempo_Total_Trabajado
+Información de Cierre: Estatus_Aceptacion, Comentarios_Solicitante, Fecha_Cierre_Total, Historial_Versiones
+3. Flujo de Trabajo y Estados
+4. Control de SLA y Escalamientos
+4.1. Tiempos por Prioridad
+4.2. Reglas de Escalamiento
+OT ASIGNADA sin inicio antes del tiempo de respuesta → notificar supervisor
+OT supera 75% del tiempo máximo sin cerrar → alerta administrador
+OT excede tiempo máximo → marcar retrasada y escalar
+Técnico rechaza asignación → sugerir técnico alternativo
+OT PAUSADA >24hrs → alertas diarias
+5. Módulo de Gestión de Inventario
+5.1. Estructura de Material
+Campos requeridos: ID_Material, Nombre_Material, Categoria, Cantidad_Disponible, Punto_Reorden, Costo_Unitario, Unidad_Medida, Proveedor
+5.2. Funcionalidades
+Validación de disponibilidad antes de asignar OTs
+Registro automático de consumo al cerrar OT
+Alertas de punto de reorden
+Historial de movimientos
+Cálculo automático de costos por OT
+6. Módulo de Reportes y Análisis
+6.1. Dashboard - KPIs en Tiempo Real
+Total de OTs por estado
+OTs retrasadas según SLA
+Tiempo promedio de resolución
+Porcentaje de cumplimiento de SLA
+Tasa de aceptación vs rechazos
+Carga de trabajo por técnico
+Costos totales de materiales
+6.2. Reportes Operativos Requeridos
+Desempeño por Técnico: OTs completadas, tiempo promedio, tasa de aceptación, cumplimiento SLA
+Tipos de Falla: Frecuencia, tiempo promedio, costos, tendencias
+Costos: Total materiales, costo promedio por OT, distribución por área
+Satisfacción: Tasa de aceptación, análisis de comentarios
+7. Seguridad y Autenticación
+7.1. Requerimientos
+Autenticación robusta con tokens de sesión
+Autorización basada en roles
+Encriptación de datos en tránsito y reposo
+Registro de auditoría completo
+Protección contra ataques comunes
+8. Consideraciones Técnicas
+8.1. Modo Offline
+Consulta de OTs asignadas sin conexión
+Captura de fotos y documentación offline
+Sincronización automática al recuperar conexión
+8.2. Notificaciones
+Push para eventos críticos
+In-app para actualizaciones
+Email para reportes y alertas
+Preferencias configurables
+8.3. Geolocalización
+Captura automática de GPS al crear OT
+Visualización en mapa
+Navegación hacia ubicación
+Tracking opcional de técnico
+8.4. Archivos Multimedia
+Compresión automática de imágenes
+Almacenamiento en nube escalable
+URLs con tokens de acceso temporal
+Formatos: JPG, PNG, PDF, MP4
+9. Resumen de Mejoras Incorporadas
+Este documento incorpora mejoras críticas respecto a la propuesta original:
+Control de SLA: Tiempos definidos por prioridad, alertas automáticas, escalamiento
+Gestión de Inventario: Módulo completo con control de stock, validación de disponibilidad, costos
+Reportes y Análisis: Dashboard con KPIs, reportes operativos, análisis de tendencias
+Flujo de Trabajo: Estado PAUSADA, ajuste de flujo de rechazo, historial de versiones
+Funcionalidades Técnicas: Geolocalización completa, modo offline, notificaciones robustas
+--- Fin del Documento ---
+
+--- TABLA ---
+Componente | Alcance | Características Requeridas
+Aplicación Móvil | Interfaz para Solicitantes y Técnicos | Multiplataforma (iOS y Android)
+Captura de fotos y videos
+Notificaciones push en tiempo real
+Funcionamiento con conectividad limitada
+Geolocalización
+Aplicación Web | Dashboard de Administración | Gestión y asignación de OTs
+Reportes y análisis de datos
+Consulta de historial completo
+Dashboard con KPIs en tiempo real
+Servidor Backend | Lógica de negocio y API | API REST/GraphQL robusta
+Autenticación y autorización
+Sistema de notificaciones
+Control de SLA y escalamientos
+Base de Datos | Almacenamiento central | Estructura relacional para auditoría
+Soporte para reportes complejos
+Control de versiones de OTs
+--- FIN TABLA ---
+
+
+--- TABLA ---
+Estado | Responsable | Acción | Notificaciones
+1. ABIERTA | Solicitante | Envía solicitud con información completa | Administrador: Nueva OT pendiente
+2. ASIGNADA | Administrador | Asigna técnico, prioridad, SLA y fecha | Técnico y Solicitante: OT Asignada
+3. EN PROGRESO | Técnico | Inicia trabajo y conteo de tiempo | Solicitante: Trabajo iniciado
+4. PAUSADA | Técnico | Pausa por falta de materiales | Administrador: OT pausada
+5. PENDIENTE CIERRE | Técnico | Finaliza y documenta con fotos | Admin y Solicitante: Revisión
+6. CERRADA | Solicitante | Acepta y cierra la OT | Admin y Técnico: Cierre validado
+7. RECHAZADA | Solicitante | Rechaza (vuelve a EN PROGRESO) | Admin y Técnico: Corrección
+--- FIN TABLA ---
+
+
+--- TABLA ---
+Prioridad | Tiempo Respuesta | Tiempo Resolución
+Crítica | 30 minutos | 2 horas
+Alta | 2 horas | 4 horas
+Media | 4 horas | 1 día hábil
+Baja | 1 día hábil | 3 días hábiles
+--- FIN TABLA ---

@@ -1,0 +1,881 @@
+
+╭─── Claude Code v2.0.69 ──────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│                 Welcome back Angel!                │ started                 │
+│                                                    │ Run /init to create a … │
+│                     * ▐▛███▜▌ *                    │ ─────────────────────── │
+│                    * ▝▜█████▛▘ *                   │ Recent activity         │
+│                     *  ▘▘ ▝▝  *                    │ No recent activity      │
+│                                                    │                         │
+│      Sonnet 4.5 · Claude Pro ·                     │                         │
+│      ing.angelroque@gmail.com's Organization       │                         │
+│     D:\proyectos\flutter\flutter_application_1     │                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+══════════════════ Conversation compacted · ctrl+o for history ═════════════════
+  ⎿  Referenced file lib\screens\dashboard_screen.dart
+  ⎿  Referenced file lib\screens\editar_ot_screen.dart
+  ⎿  Read lib\models\orden_trabajo.dart (234 lines)
+  ⎿  Referenced file lib\screens\detalle_ot_screen.dart
+  ⎿  Read lib\main.dart (24 lines)
+  ⎿  Todo list read (20 items)
+
+● I'll continue implementing the todo list. Let me first connect the edit screen to the detail view, then move on to the next tasks.
+
+● Read(lib\screens\detalle_ot_screen.dart)
+  ⎿  Read 641 lines
+
+● Read(lib\screens\editar_ot_screen.dart)
+  ⎿  Read 629 lines
+
+● Now I'll connect the edit screen to the detail view. I need to add a callback parameter to the detail screen and wire up the navigation.
+
+● Update(lib\screens\detalle_ot_screen.dart)
+  ⎿  Updated lib\screens\detalle_ot_screen.dart with 6 additions and 1     
+     removal
+        5    
+        6    class DetalleOTScreen extends StatelessWidget {
+        7      final OrdenTrabajo ordenTrabajo;
+        8 +    final Function(OrdenTrabajo)? onOTActualizada;
+        9    
+       10 -    const DetalleOTScreen({super.key, required 
+          - this.ordenTrabajo});
+       10 +    const DetalleOTScreen({
+       11 +      super.key,
+       12 +      required this.ordenTrabajo,
+       13 +      this.onOTActualizada,
+       14 +    });
+       15    
+       16      static final _authService = AuthService();
+       17    
+
+● Update(lib\screens\detalle_ot_screen.dart)
+  ⎿  Updated lib\screens\detalle_ot_screen.dart with 1 addition
+       2    import '../models/orden_trabajo.dart';
+       3    import '../models/usuario.dart';
+       4    import '../services/auth_service.dart';
+       5 +  import 'editar_ot_screen.dart';
+       6    
+       7    class DetalleOTScreen extends StatelessWidget {
+       8      final OrdenTrabajo ordenTrabajo;
+
+● Update(lib\screens\detalle_ot_screen.dart)
+  ⎿  Updated lib\screens\detalle_ot_screen.dart with 12 additions and 2    
+     removals
+       27                IconButton(
+       28                  icon: const Icon(Icons.edit),
+       29                  onPressed: () {
+       30 -                  ScaffoldMessenger.of(context).showSnackBar(
+       31 -                    const SnackBar(content: 
+          - Text('Funcionalidad de edición próximamente')),
+       30 +                  Navigator.push(
+       31 +                    context,
+       32 +                    MaterialPageRoute(
+       33 +                      builder: (context) => EditarOTScreen(
+       34 +                        ordenTrabajo: ordenTrabajo,
+       35 +                        onGuardar: (otActualizada) {
+       36 +                          if (onOTActualizada != null) {
+       37 +                            onOTActualizada!(otActualizada);
+       38 +                          }
+       39 +                        },
+       40 +                      ),
+       41 +                    ),
+       42                    );
+       43                  },
+       44                ),
+
+● Now I need to update the dashboard to pass the update callback to the detail screen.
+
+● Read(lib\screens\dashboard_screen.dart)
+  ⎿  Read 100 lines
+
+● Search(pattern: "DetalleOTScreen", path: "lib\screens\dashboard_screen.dart",
+        output_mode: "content")
+  ⎿  Found 8 lines (ctrl+o to expand)
+
+● Update(lib\screens\dashboard_screen.dart)
+  ⎿  Updated lib\screens\dashboard_screen.dart with 4 additions and 1      
+     removal
+       447            Navigator.push(
+       448              context,
+       449              MaterialPageRoute(
+       450 -              builder: (context) => DetalleOTScreen(
+           -  ordenTrabajo: ot),
+       450 +              builder: (context) => DetalleOTScreen(
+       451 +                ordenTrabajo: ot,
+       452 +                onOTActualizada: _actualizarOT,
+       453 +              ),
+       454              ),
+       455            );
+       456          },
+
+● Now let me update the todo list to mark the completed tasks and continue with the next ones.
+
+● Now I'll implement the state change functionality (Iniciar, Pausar, Cerrar buttons). Let me update the detail screen to include action buttons based on the OT state.
+
+● Update(lib\screens\detalle_ot_screen.dart)
+  ⎿  Updated lib\screens\detalle_ot_screen.dart with 354 additions and 18 
+     removals
+       579      }
+       580    
+       581      Widget _buildBottomActions(BuildContext context) {
+       582 +      final usuario = _authService.usuarioActual;
+       583 +      final esTecnicoAsignado = usuario?.id == 
+           + ordenTrabajo.tecnicoAsignadoId;
+       584 +      final esSolicitante = usuario?.id == 
+           + ordenTrabajo.solicitanteId;
+       585 +  
+       586 +      // Botones de acción según el estado y el rol del 
+           + usuario
+       587 +      List<Widget> actionButtons = [];
+       588 +  
+       589 +      // Botón Iniciar - Solo técnico asignado, estado 
+           + Asignada
+       590 +      if (esTecnicoAsignado && ordenTrabajo.estado == 
+           + EstadoOT.asignada) {
+       591 +        actionButtons.add(
+       592 +          Expanded(
+       593 +            child: ElevatedButton.icon(
+       594 +              onPressed: () => _iniciarTrabajo(context),
+       595 +              icon: const Icon(Icons.play_arrow),
+       596 +              label: const Text('Iniciar Trabajo'),
+       597 +              style: ElevatedButton.styleFrom(
+       598 +                backgroundColor: Colors.green[600],
+       599 +                foregroundColor: Colors.white,
+       600 +                padding: const EdgeInsets.symmetric(vertical:
+           +  14),
+       601 +              ),
+       602 +            ),
+       603 +          ),
+       604 +        );
+       605 +      }
+       606 +  
+       607 +      // Botón Pausar - Solo técnico asignado, estado En 
+           + Progreso
+       608 +      if (esTecnicoAsignado && ordenTrabajo.estado == 
+           + EstadoOT.enProgreso) {
+       609 +        actionButtons.add(
+       610 +          Expanded(
+       611 +            child: OutlinedButton.icon(
+       612 +              onPressed: () => _pausarTrabajo(context),
+       613 +              icon: const Icon(Icons.pause),
+       614 +              label: const Text('Pausar'),
+       615 +              style: OutlinedButton.styleFrom(
+       616 +                foregroundColor: Colors.orange[700],
+       617 +                side: BorderSide(color: Colors.orange[700]!),
+       618 +                padding: const EdgeInsets.symmetric(vertical:
+           +  14),
+       619 +              ),
+       620 +            ),
+       621 +          ),
+       622 +        );
+       623 +  
+       624 +        if (actionButtons.isNotEmpty) actionButtons.add(const
+           +  SizedBox(width: 12));
+       625 +  
+       626 +        actionButtons.add(
+       627 +          Expanded(
+       628 +            child: ElevatedButton.icon(
+       629 +              onPressed: () => _cerrarTrabajo(context),
+       630 +              icon: const Icon(Icons.check_circle),
+       631 +              label: const Text('Finalizar'),
+       632 +              style: ElevatedButton.styleFrom(
+       633 +                backgroundColor: Colors.blue[700],
+       634 +                foregroundColor: Colors.white,
+       635 +                padding: const EdgeInsets.symmetric(vertical:
+           +  14),
+       636 +              ),
+       637 +            ),
+       638 +          ),
+       639 +        );
+       640 +      }
+       641 +  
+       642 +      // Botón Reanudar - Solo técnico asignado, estado 
+           + Pausada
+       643 +      if (esTecnicoAsignado && ordenTrabajo.estado == 
+           + EstadoOT.pausada) {
+       644 +        actionButtons.add(
+       645 +          Expanded(
+       646 +            child: ElevatedButton.icon(
+       647 +              onPressed: () => _reanudarTrabajo(context),
+       648 +              icon: const Icon(Icons.play_arrow),
+       649 +              label: const Text('Reanudar'),
+       650 +              style: ElevatedButton.styleFrom(
+       651 +                backgroundColor: Colors.purple[600],
+       652 +                foregroundColor: Colors.white,
+       653 +                padding: const EdgeInsets.symmetric(vertical:
+           +  14),
+       654 +              ),
+       655 +            ),
+       656 +          ),
+       657 +        );
+       658 +      }
+       659 +  
+       660 +      // Botones Aceptar/Rechazar - Solo solicitante, estado 
+           + Pendiente Cierre
+       661 +      if (esSolicitante && ordenTrabajo.estado == 
+           + EstadoOT.pendienteCierre) {
+       662 +        actionButtons.add(
+       663 +          Expanded(
+       664 +            child: OutlinedButton.icon(
+       665 +              onPressed: () => _rechazarTrabajo(context),
+       666 +              icon: const Icon(Icons.close),
+       667 +              label: const Text('Rechazar'),
+       668 +              style: OutlinedButton.styleFrom(
+       669 +                foregroundColor: Colors.red[700],
+       670 +                side: BorderSide(color: Colors.red[700]!),
+       671 +                padding: const EdgeInsets.symmetric(vertical:
+           +  14),
+       672 +              ),
+       673 +            ),
+       674 +          ),
+       675 +        );
+       676 +  
+       677 +        actionButtons.add(const SizedBox(width: 12));
+       678 +  
+       679 +        actionButtons.add(
+       680 +          Expanded(
+       681 +            child: ElevatedButton.icon(
+       682 +              onPressed: () => _aceptarTrabajo(context),
+       683 +              icon: const Icon(Icons.check),
+       684 +              label: const Text('Aceptar'),
+       685 +              style: ElevatedButton.styleFrom(
+       686 +                backgroundColor: Colors.green[600],
+       687 +                foregroundColor: Colors.white,
+       688 +                padding: const EdgeInsets.symmetric(vertical:
+           +  14),
+       689 +              ),
+       690 +            ),
+       691 +          ),
+       692 +        );
+       693 +      }
+       694 +  
+       695 +      // Si no hay botones de acción, mostrar botones 
+           + genéricos
+       696 +      if (actionButtons.isEmpty) {
+       697 +        actionButtons = [
+       698 +          Expanded(
+       699 +            child: OutlinedButton.icon(
+       700 +              onPressed: () {},
+       701 +              icon: const Icon(Icons.share),
+       702 +              label: const Text('Compartir'),
+       703 +              style: OutlinedButton.styleFrom(
+       704 +                padding: const EdgeInsets.symmetric(vertical:
+           +  12),
+       705 +              ),
+       706 +            ),
+       707 +          ),
+       708 +          const SizedBox(width: 12),
+       709 +          Expanded(
+       710 +            child: ElevatedButton.icon(
+       711 +              onPressed: () {},
+       712 +              icon: const Icon(Icons.download),
+       713 +              label: const Text('Exportar PDF'),
+       714 +              style: ElevatedButton.styleFrom(
+       715 +                padding: const EdgeInsets.symmetric(vertical:
+           +  12),
+       716 +              ),
+       717 +            ),
+       718 +          ),
+       719 +        ];
+       720 +      }
+       721 +  
+       722        return Container(
+       723          padding: const EdgeInsets.all(16),
+       724          decoration: BoxDecoration(
+     ...
+       593            ],
+       594          ),
+       595          child: Row(
+       596 -          children: [
+       597 -            Expanded(
+       598 -              child: OutlinedButton.icon(
+       599 -                onPressed: () {},
+       600 -                icon: const Icon(Icons.share),
+       601 -                label: const Text('Compartir'),
+       602 -                style: OutlinedButton.styleFrom(
+       603 -                  padding: const 
+           - EdgeInsets.symmetric(vertical: 12),
+       596 +          children: actionButtons,
+       597 +        ),
+       598 +      );
+       599 +    }
+       600 +  
+       601 +    void _iniciarTrabajo(BuildContext context) {
+       602 +      final otActualizada = ordenTrabajo.copyWith(
+       603 +        estado: EstadoOT.enProgreso,
+       604 +        fechaHoraInicioReal: DateTime.now(),
+       605 +      );
+       606 +  
+       607 +      if (onOTActualizada != null) {
+       608 +        onOTActualizada!(otActualizada);
+       609 +      }
+       610 +  
+       611 +      Navigator.pop(context);
+       612 +  
+       613 +      ScaffoldMessenger.of(context).showSnackBar(
+       614 +        SnackBar(
+       615 +          content: const Row(
+       616 +            children: [
+       617 +              Icon(Icons.play_arrow, color: Colors.white),
+       618 +              SizedBox(width: 12),
+       619 +              Text('Trabajo iniciado exitosamente'),
+       620 +            ],
+       621 +          ),
+       622 +          backgroundColor: Colors.green[600],
+       623 +          behavior: SnackBarBehavior.floating,
+       624 +          shape: RoundedRectangleBorder(borderRadius: 
+           + BorderRadius.circular(10)),
+       625 +        ),
+       626 +      );
+       627 +    }
+       628 +  
+       629 +    void _pausarTrabajo(BuildContext context) {
+       630 +      final otActualizada = ordenTrabajo.copyWith(
+       631 +        estado: EstadoOT.pausada,
+       632 +      );
+       633 +  
+       634 +      if (onOTActualizada != null) {
+       635 +        onOTActualizada!(otActualizada);
+       636 +      }
+       637 +  
+       638 +      Navigator.pop(context);
+       639 +  
+       640 +      ScaffoldMessenger.of(context).showSnackBar(
+       641 +        SnackBar(
+       642 +          content: const Row(
+       643 +            children: [
+       644 +              Icon(Icons.pause, color: Colors.white),
+       645 +              SizedBox(width: 12),
+       646 +              Text('Trabajo pausado'),
+       647 +            ],
+       648 +          ),
+       649 +          backgroundColor: Colors.orange[700],
+       650 +          behavior: SnackBarBehavior.floating,
+       651 +          shape: RoundedRectangleBorder(borderRadius: 
+           + BorderRadius.circular(10)),
+       652 +        ),
+       653 +      );
+       654 +    }
+       655 +  
+       656 +    void _reanudarTrabajo(BuildContext context) {
+       657 +      final otActualizada = ordenTrabajo.copyWith(
+       658 +        estado: EstadoOT.enProgreso,
+       659 +      );
+       660 +  
+       661 +      if (onOTActualizada != null) {
+       662 +        onOTActualizada!(otActualizada);
+       663 +      }
+       664 +  
+       665 +      Navigator.pop(context);
+       666 +  
+       667 +      ScaffoldMessenger.of(context).showSnackBar(
+       668 +        SnackBar(
+       669 +          content: const Row(
+       670 +            children: [
+       671 +              Icon(Icons.play_arrow, color: Colors.white),
+       672 +              SizedBox(width: 12),
+       673 +              Text('Trabajo reanudado'),
+       674 +            ],
+       675 +          ),
+       676 +          backgroundColor: Colors.purple[600],
+       677 +          behavior: SnackBarBehavior.floating,
+       678 +          shape: RoundedRectangleBorder(borderRadius: 
+           + BorderRadius.circular(10)),
+       679 +        ),
+       680 +      );
+       681 +    }
+       682 +  
+       683 +    void _cerrarTrabajo(BuildContext context) {
+       684 +      // Calcular tiempo trabajado
+       685 +      Duration? tiempoTrabajado;
+       686 +      if (ordenTrabajo.fechaHoraInicioReal != null) {
+       687 +        tiempoTrabajado = DateTime.now().difference(ordenTrab
+           + ajo.fechaHoraInicioReal!);
+       688 +      }
+       689 +  
+       690 +      final otActualizada = ordenTrabajo.copyWith(
+       691 +        estado: EstadoOT.pendienteCierre,
+       692 +        fechaHoraCierreTecnico: DateTime.now(),
+       693 +        tiempoTotalTrabajado: tiempoTrabajado,
+       694 +      );
+       695 +  
+       696 +      if (onOTActualizada != null) {
+       697 +        onOTActualizada!(otActualizada);
+       698 +      }
+       699 +  
+       700 +      Navigator.pop(context);
+       701 +  
+       702 +      ScaffoldMessenger.of(context).showSnackBar(
+       703 +        SnackBar(
+       704 +          content: const Row(
+       705 +            children: [
+       706 +              Icon(Icons.check_circle, color: Colors.white),
+       707 +              SizedBox(width: 12),
+       708 +              Text('Trabajo finalizado, pendiente de 
+           + aprobación'),
+       709 +            ],
+       710 +          ),
+       711 +          backgroundColor: Colors.blue[700],
+       712 +          behavior: SnackBarBehavior.floating,
+       713 +          shape: RoundedRectangleBorder(borderRadius: 
+           + BorderRadius.circular(10)),
+       714 +        ),
+       715 +      );
+       716 +    }
+       717 +  
+       718 +    void _aceptarTrabajo(BuildContext context) {
+       719 +      final otActualizada = ordenTrabajo.copyWith(
+       720 +        estado: EstadoOT.cerrada,
+       721 +        estatusAceptacion: true,
+       722 +        fechaCierreTotal: DateTime.now(),
+       723 +        comentariosSolicitante: 'Trabajo aceptado',
+       724 +      );
+       725 +  
+       726 +      if (onOTActualizada != null) {
+       727 +        onOTActualizada!(otActualizada);
+       728 +      }
+       729 +  
+       730 +      Navigator.pop(context);
+       731 +  
+       732 +      ScaffoldMessenger.of(context).showSnackBar(
+       733 +        SnackBar(
+       734 +          content: const Row(
+       735 +            children: [
+       736 +              Icon(Icons.check_circle, color: Colors.white),
+       737 +              SizedBox(width: 12),
+       738 +              Text('Trabajo aceptado, OT cerrada'),
+       739 +            ],
+       740 +          ),
+       741 +          backgroundColor: Colors.green[600],
+       742 +          behavior: SnackBarBehavior.floating,
+       743 +          shape: RoundedRectangleBorder(borderRadius: 
+           + BorderRadius.circular(10)),
+       744 +        ),
+       745 +      );
+       746 +    }
+       747 +  
+       748 +    void _rechazarTrabajo(BuildContext context) {
+       749 +      // Mostrar diálogo para comentarios del rechazo
+       750 +      showDialog(
+       751 +        context: context,
+       752 +        builder: (context) => AlertDialog(
+       753 +          shape: RoundedRectangleBorder(borderRadius: 
+           + BorderRadius.circular(16)),
+       754 +          title: const Text('Rechazar Trabajo'),
+       755 +          content: Column(
+       756 +            mainAxisSize: MainAxisSize.min,
+       757 +            children: [
+       758 +              const Text('Por favor, indica el motivo del 
+           + rechazo:'),
+       759 +              const SizedBox(height: 16),
+       760 +              TextField(
+       761 +                maxLines: 3,
+       762 +                decoration: InputDecoration(
+       763 +                  hintText: 'Motivo del rechazo...',
+       764 +                  border: OutlineInputBorder(
+       765 +                    borderRadius: BorderRadius.circular(8),
+       766 +                  ),
+       767                  ),
+       768 +                onChanged: (value) {
+       769 +                  // Guardar comentario temporalmente
+       770 +                },
+       771                ),
+       772 +            ],
+       773 +          ),
+       774 +          actions: [
+       775 +            TextButton(
+       776 +              onPressed: () => Navigator.pop(context),
+       777 +              child: const Text('Cancelar'),
+       778              ),
+       779 -            const SizedBox(width: 12),
+       780 -            Expanded(
+       781 -              child: ElevatedButton.icon(
+       782 -                onPressed: () {},
+       783 -                icon: const Icon(Icons.download),
+       784 -                label: const Text('Exportar PDF'),
+       785 -                style: ElevatedButton.styleFrom(
+       786 -                  padding: const 
+           - EdgeInsets.symmetric(vertical: 12),
+       787 -                ),
+       788 -              ),
+       779 +            ElevatedButton(
+       780 +              onPressed: () {
+       781 +                Navigator.pop(context);
+       782 +  
+       783 +                final otActualizada = ordenTrabajo.copyWith(
+       784 +                  estado: EstadoOT.rechazada,
+       785 +                  estatusAceptacion: false,
+       786 +                  fechaCierreTotal: DateTime.now(),
+       787 +                  comentariosSolicitante: 'Trabajo rechazado 
+           + - requiere corrección',
+       788 +                );
+       789 +  
+       790 +                if (onOTActualizada != null) {
+       791 +                  onOTActualizada!(otActualizada);
+       792 +                }
+       793 +  
+       794 +                Navigator.pop(context);
+       795 +  
+       796 +                ScaffoldMessenger.of(context).showSnackBar(
+       797 +                  SnackBar(
+       798 +                    content: const Row(
+       799 +                      children: [
+       800 +                        Icon(Icons.cancel, color: 
+           + Colors.white),
+       801 +                        SizedBox(width: 12),
+       802 +                        Text('Trabajo rechazado'),
+       803 +                      ],
+       804 +                    ),
+       805 +                    backgroundColor: Colors.red[600],
+       806 +                    behavior: SnackBarBehavior.floating,
+       807 +                    shape: 
+           + RoundedRectangleBorder(borderRadius: 
+           + BorderRadius.circular(10)),
+       808 +                  ),
+       809 +                );
+       810 +              },
+       811 +              style: 
+           + ElevatedButton.styleFrom(backgroundColor: Colors.red[600]),
+       812 +              child: const Text('Rechazar'),
+       813              ),
+       814            ],
+       815          ),
+
+● Let me update the todo list and continue with the next priority tasks.
+
+● Now I'll implement advanced search and filters for the dashboard.
+
+● Read(lib\screens\dashboard_screen.dart)
+  ⎿  Read 150 lines
+
+● Search(pattern: "_buildFilterSection", path:
+        "lib\screens\dashboard_screen.dart", output_mode: "content")
+  ⎿  Found 103 lines (ctrl+o to expand)
+
+● Now I'll add advanced search and filters to the dashboard. Let me first add the state variables.
+
+● Update(lib\screens\dashboard_screen.dart)
+  ⎿  Updated lib\screens\dashboard_screen.dart with 6 additions          
+       16    
+       17    class _DashboardScreenState extends State<DashboardScreen> {
+       18      EstadoOT? _filtroEstado;
+       19 +    TipoFalla? _filtroTipoFalla;
+       20 +    Prioridad? _filtroPrioridad;
+       21 +    String? _filtroTecnicoId;
+       22 +    String _textoBusqueda = '';
+       23 +    bool _mostrarFiltrosAvanzados = false;
+       24      final List<OrdenTrabajo> _ordenesTrabajo = 
+            List.from(ordenesTrabajosDummy);
+       25      final _authService = AuthService();
+       26 +    final _searchController = TextEditingController();
+       27    
+       28      List<OrdenTrabajo> get _ordenesFiltradas {
+       29        var ordenes = _ordenesTrabajo;
+
+● Update(lib\screens\dashboard_screen.dart)
+  ⎿  Updated lib\screens\dashboard_screen.dart with 30 additions         
+       41          // Administradores y supervisores ven todas las OTs
+       42        }
+       43    
+       44 +      // Filtrar por búsqueda de texto
+       45 +      if (_textoBusqueda.isNotEmpty) {
+       46 +        ordenes = ordenes.where((ot) {
+       47 +          final textoLower = _textoBusqueda.toLowerCase();
+       48 +          return ot.idOT.toLowerCase().contains(textoLower) ||
+       49 +              
+          + ot.descripcionProblema.toLowerCase().contains(textoLower) ||
+       50 +              ot.ubicacion.toLowerCase().contains(textoLower) 
+          + ||
+       51 +              
+          + ot.solicitanteNombre.toLowerCase().contains(textoLower) ||
+       52 +              
+          + (ot.tecnicoAsignadoNombre?.toLowerCase().contains(textoLower)
+          +  ?? false);
+       53 +        }).toList();
+       54 +      }
+       55 +  
+       56        // Filtrar por estado seleccionado
+       57        if (_filtroEstado != null) {
+       58          ordenes = ordenes.where((ot) => ot.estado == 
+            _filtroEstado).toList();
+       59        }
+       60    
+       61 +      // Filtrar por tipo de falla
+       62 +      if (_filtroTipoFalla != null) {
+       63 +        ordenes = ordenes.where((ot) => ot.tipoFalla == 
+          + _filtroTipoFalla).toList();
+       64 +      }
+       65 +  
+       66 +      // Filtrar por prioridad
+       67 +      if (_filtroPrioridad != null) {
+       68 +        ordenes = ordenes.where((ot) {
+       69 +          final prioridad = ot.prioridadAsignada ?? 
+          + ot.prioridadSolicitada;
+       70 +          return prioridad == _filtroPrioridad;
+       71 +        }).toList();
+       72 +      }
+       73 +  
+       74 +      // Filtrar por técnico asignado
+       75 +      if (_filtroTecnicoId != null) {
+       76 +        ordenes = ordenes.where((ot) => ot.tecnicoAsignadoId 
+          + == _filtroTecnicoId).toList();
+       77 +      }
+       78 +  
+       79        return ordenes;
+       80      }
+       81    
+
+● Now I'll update the filter section to include the search bar and advanced filters.
+
+● Update(lib\screens\dashboard_screen.dart)
+  ⎿  Updated lib\screens\dashboard_screen.dart with 183 additions and 10 
+     removals
+       377          child: Column(
+       378            crossAxisAlignment: CrossAxisAlignment.start,
+       379            children: [
+       380 -            const Row(
+       380 +            // Barra de búsqueda
+       381 +            TextField(
+       382 +              controller: _searchController,
+       383 +              decoration: InputDecoration(
+       384 +                hintText: 'Buscar por ID, descripción, 
+           + ubicación...',
+       385 +                prefixIcon: const Icon(Icons.search, color: 
+           + Colors.grey),
+       386 +                suffixIcon: _textoBusqueda.isNotEmpty
+       387 +                    ? IconButton(
+       388 +                        icon: const Icon(Icons.clear, size: 
+           + 20),
+       389 +                        onPressed: () {
+       390 +                          setState(() {
+       391 +                            _searchController.clear();
+       392 +                            _textoBusqueda = '';
+       393 +                          });
+       394 +                        },
+       395 +                      )
+       396 +                    : null,
+       397 +                filled: true,
+       398 +                fillColor: Colors.grey[100],
+       399 +                border: OutlineInputBorder(
+       400 +                  borderRadius: BorderRadius.circular(12),
+       401 +                  borderSide: BorderSide.none,
+       402 +                ),
+       403 +                contentPadding: const 
+           + EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+       404 +              ),
+       405 +              onChanged: (value) {
+       406 +                setState(() {
+       407 +                  _textoBusqueda = value;
+       408 +                });
+       409 +              },
+       410 +            ),
+       411 +            const SizedBox(height: 16),
+       412 +  
+       413 +            // Encabezado de filtros con botón de avanzados
+       414 +            Row(
+       415 +              mainAxisAlignment: 
+           + MainAxisAlignment.spaceBetween,
+       416                children: [
+       417 -                Icon(Icons.filter_list_rounded, size: 20, 
+           - color: Colors.black54),
+       418 -                SizedBox(width: 8),
+       419 -                Text(
+       420 -                  'Filtrar por estado',
+       421 -                  style: TextStyle(
+       422 -                    fontWeight: FontWeight.w600,
+       423 -                    fontSize: 15,
+       424 -                    color: Colors.black87,
+       425 -                  ),
+       417 +                const Row(
+       418 +                  children: [
+       419 +                    Icon(Icons.filter_list_rounded, size: 20,
+           +  color: Colors.black54),
+       420 +                    SizedBox(width: 8),
+       421 +                    Text(
+       422 +                      'Filtros',
+       423 +                      style: TextStyle(
+       424 +                        fontWeight: FontWeight.w600,
+       425 +                        fontSize: 15,
+       426 +                        color: Colors.black87,
+       427 +                      ),
+       428 +                    ),
+       429 +                  ],
+       430                  ),
+       431 +                Row(
+       432 +                  children: [
+       433 +                    if (_filtroEstado != null || 
+           + _filtroTipoFalla != null ||
+       434 +                        _filtroPrioridad != null || 
+           + _filtroTecnicoId != null)
+       435 +                      TextButton.icon(
+       436 +                        onPressed: () {
+       437 +                          setState(() {
+       438 +                            _filtroEstado = null;
+       439 +                            _filtroTipoFalla = null;
+       440 +                            _filtroPrioridad = null;
+       441 +                            _filtroTecnicoId = null;
+       442 +                          });
+       443 +                        },
+       444 +                        icon: const Icon(Icons.clear_all, 
+           + size: 18),
+       445 +                        label: const Text('Limpiar'),
+       446 +                        style: TextButton.styleFrom(
+       447 +                          foregroundColor: Colors.red[600],
+       448 +                          padding: const 
+           + EdgeInsets.symmetric(horizontal: 8),
+       449 +                        ),
+       450 +                      ),
+       451 +                    TextButton.icon(
+       452 +                      onPressed: () {
+       453 +                        setState(() {
+       454 +                          _mostrarFiltrosAvanzados = 
+           + !_mostrarFiltrosAvanzados;
+       455 +                        });
+       456 +                      },
+       457 +                      icon: Icon(
+       458 +                        _mostrarFiltrosAvanzados ? 
+           + Icons.expand_less : Icons.expand_more,
+       459 +                        size: 20,
+       460 +                      ),
+       461 +                      label: Text(_mostrarFiltrosAvanzados ? 
+           + 'Ocultar' : 'Avanzados'),
+       462 +                      style: TextButton.styleFrom(
+       463 +                        foregroundColor: Colors.blue[700],
+       464 +                        padding: const 
+           + EdgeInsets.symmetric(horizontal: 8),
+       465 +                      ),
+       466 +                    ),
+       467 +                  ],
+       468 +                ),
+       469                ],
+       470              ),
+       471              const SizedBox(height: 12),
+       472 +  
+       473 +            // Filtros por estado
+       474 +            const Text(
+       475 +              'Estado',
+       476 +              style: TextStyle(
+       477 +                fontSize: 13,
+       478 +                fontWeight: FontWeight.w600,
+       479 +                color: Colors.black54,
+       480 +              ),
+       481 +            ),
+       482 +            const SizedBox(height: 8),
+       483              SingleChildScrollView(
+       484                scrollDirection: Axis.horizontal,
+       485                child: Row(
+     ...
+       407                  ],
+       408                ),
+       409              ),
+       410 +  
+       411 +            // Filtros avanzados
+       412 +            if (_mostrarFiltrosAvanzados) ...[
+       413 +              const SizedBox(height: 16),
+       414 +              const Divider(),
+       415 +              const SizedBox(height: 12),
+       416 +  
+       417 +              // Filtro por tipo de falla
+       418 +              const Text(
+       419 +                'Tipo de Falla',
+       420 +                style: TextStyle(
+       421 +                  fontSize: 13,
+       422 +                  fontWeight: FontWeight.w600,
+       423 +                  color: Colors.black54,
+       424 +                ),
+       425 +              ),
+       426 +              const SizedBox(height: 8),
+       427 +              SingleChildScrollView(
+       428 +                scrollDirection: Axis.horizontal,
+       429 +                child: Row(
+       430 +                  children: [
+       431 +                    _buildTipoFallaChip('Todos', null),
+       432 +                    _buildTipoFallaChip('Eléctrica', 
+           + TipoFalla.electrica),
+       433 +                    _buildTipoFallaChip('Plomería', 
+           + TipoFalla.plomeria),
+       434 +                    _buildTipoFallaChip('Climatización', 
+           + TipoFalla.climatizacion),
+       435 +                    _buildTipoFallaChip('Estructural', 
+           + TipoFalla.estructural),
+       436 +                    _buildTipoFallaChip('Limpieza', 
+           + TipoFalla.limpieza),
+       437 +                    _buildTipoFallaChip('Seguridad', 
+           + TipoFalla.seguridad),
+       438 +                    _buildTipoFallaChip('Tecnología', 
+           + TipoFalla.tecnologia),
+       439 +                    _buildTipoFallaChip('Otro', 
+           + TipoFalla.otro),
+       440 +                  ],
+       441 +                ),
+       442 +              ),
+       443 +  
+       444 +              const SizedBox(height: 16),
+       445 +  
+       446 +              // Filtro por prioridad
+       447 +              const Text(
+       448 +                'Prioridad',
+       449 +                style: TextStyle(
+       450 +                  fontSize: 13,
+       451 +                  fontWeight: FontWeight.w600,
+       452 +                  color: Colors.black54,
+       453 +                ),
+       454 +              ),
+       455 +              const SizedBox(height: 8),
+       456 +              SingleChildScrollView(
+       457 +                scrollDirection: Axis.horizontal,
+       458 +                child: Row(
+       459 +                  children: [
+       460 +                    _buildPrioridadChip('Todas', null),
+       461 +                    _buildPrioridadChip('Crítica', 
+           + Prioridad.critica),
+       462 +                    _buildPrioridadChip('Alta', 
+           + Prioridad.alta),
+       463 +                    _buildPrioridadChip('Media', 
+           + Prioridad.media),
+       464 +                    _buildPrioridadChip('Baja', 
+           + Prioridad.baja),
+       465 +                  ],
+       466 +                ),
+       467 +              ),
+       468 +  
+       469 +              // Filtro por técnico (solo para admin y 
+           + supervisor)
+       470 +              if (_authService.usuarioActual != null &&
+       471 +                  (_authService.usuarioActual!.rol == 
+           + Rol.administrador ||
+       472 +                      _authService.usuarioActual!.rol == 
+           + Rol.supervisor)) ...[
+       473 +                const SizedBox(height: 16),
+       474 +                const Text(
+       475 +                  'Técnico Asignado',
+       476 +                  style: TextStyle(
+       477 +                    fontSize: 13,
+       478 +                    fontWeight: FontWeight.w600,
+       479 +                    color: Colors.black54,
+       480 +                  ),
+       481 +                ),
+       482 +                const SizedBox(height: 8),
+       483 +                SingleChildScrollView(
+       484 +                  scrollDirection: Axis.horizontal,
+       485 +                  child: Row(
+       486 +                    children: [
+       487 +                      _buildTecnicoChip('Todos', null),
+       488 +                      ..._getTecnicos().map((tecnico) =>
+       489 +                          
+           + _buildTecnicoChip(tecnico.nombre.split(' ')[0], 
+           + tecnico.id)),
+       490 +                    ],
+       491 +                  ),
+       492 +                ),
+       493 +              ],
+       494 +            ],
+       495            ],
+       496          ),
+       497        );
+  ⎿  Limit reached · resets 2am (America/Mexico_City) · /upgrade to Max or turn 
+     on /extra-usage
+     /upgrade or /extra-usage to finish what you're working on.
+
+
+
