@@ -4,7 +4,7 @@ final List<Usuario> usuariosDummy = [
   // Administrador
   Usuario(
     id: 'USR-001',
-    nombre: 'Carlos Administrador',
+    nombre: 'Jorge Administrador',
     email: 'admin@mantenimiento.com',
     password: 'admin123',
     rol: Rol.administrador,
@@ -14,7 +14,7 @@ final List<Usuario> usuariosDummy = [
   // Supervisor
   Usuario(
     id: 'USR-002',
-    nombre: 'Ana Supervisora',
+    nombre: 'Ana Supervisor',
     email: 'supervisor@mantenimiento.com',
     password: 'super123',
     rol: Rol.supervisor,

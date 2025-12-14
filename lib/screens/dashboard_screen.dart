@@ -113,7 +113,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   int _contarPorEstado(EstadoOT estado) {
-    return _ordenesTrabajo.where((ot) => ot.estado == estado).length;
+    // Filtrar por rol del usuario
+    var ordenes = _ordenesTrabajo;
+    final usuario = _authService.usuarioActual;
+
+    if (usuario != null) {
+      if (usuario.rol == Rol.tecnico) {
+        // Los técnicos solo cuentan OTs asignadas a ellos
+        ordenes = ordenes.where((ot) => ot.tecnicoAsignadoId == usuario.id).toList();
+      } else if (usuario.rol == Rol.solicitante) {
+        // Los solicitantes solo cuentan sus propias OTs
+        ordenes = ordenes.where((ot) => ot.solicitanteId == usuario.id).toList();
+      }
+      // Administradores y supervisores cuentan todas las OTs
+    }
+
+    return ordenes.where((ot) => ot.estado == estado).length;
   }
 
   void _agregarNuevaOT(OrdenTrabajo nuevaOT) {
