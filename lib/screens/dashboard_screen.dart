@@ -519,7 +519,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<OrdenamientoOT>(
-                  value: _ordenamiento,
+                  initialValue: _ordenamiento,
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     border: OutlineInputBorder(
