@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/orden_trabajo.dart' as models;
 import '../models/usuario.dart';
-import '../services/auth_service.dart';
 import '../data/usuarios_dummy.dart';
 
 class EditarOTScreen extends StatefulWidget {
@@ -19,7 +18,6 @@ class EditarOTScreen extends StatefulWidget {
 }
 
 class _EditarOTScreenState extends State<EditarOTScreen> with SingleTickerProviderStateMixin {
-  final _authService = AuthService();
   late TabController _tabController;
 
   late models.EstadoOT _estadoSeleccionado;
